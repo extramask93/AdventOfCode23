@@ -20,7 +20,7 @@ impl FromStr for Subset {
         let mut rgb = (0, 0, 0);
         for sl in s.trim().split(",") {
             let mut result: u32 = 0;
-            for digit in sl.trim().bytes() {
+            for digit in sl.trim_matches(':').trim().bytes() {
                 if digit < 48 || digit > 57 {
                     break;
                 }
@@ -70,10 +70,27 @@ where
         .filter(|game| bag.is_game_possible(game))
         .fold(0, |acc, game| acc + game.id)
 }
+fn solve_part2<R>(buff: &mut BufReader<R>) -> u32
+where
+    R: Read,
+{
+    buff.lines()
+        .filter_map(|r| r.ok())
+        .map(|line| line.parse::<Game>().unwrap().power())
+        .fold(0, |acc, power| acc + power)
+}
 #[derive(Debug)]
 struct Game {
     id: u32,
     subsets: Vec<Subset>,
+}
+impl Game {
+    fn power(&self) -> u32 {
+        let maxred = self.subsets.iter().map(|sub| sub.red).max().unwrap();
+        let maxgreen = self.subsets.iter().map(|sub| sub.green).max().unwrap();
+        let maxblue = self.subsets.iter().map(|sub| sub.blue).max().unwrap();
+        maxred*maxgreen*maxblue
+    }
 }
 impl FromStr for Game {
     type Err = std::io::Error;
@@ -92,13 +109,14 @@ impl FromStr for Game {
     }
 }
 fn main() {
-    let file = File::open("data.txt").expect("Cant find the file");
-    let mut reader = BufReader::new(file);
-    println!("{}", solve(&mut reader))
+    let mut reader = BufReader::new(File::open("data.txt").expect("Cant find the file"));
+    let mut reader2 = BufReader::new(File::open("data.txt").expect("Cant find the file"));
+    println!("{}", solve(&mut reader));
+    println!("{}", solve_part2(&mut reader2));
 }
 
 mod test {
-    use crate::{Bag, Game, Subset, solve};
+    use crate::{Bag, Game, Subset, solve, solve_part2};
     use std::io::BufReader;
     #[test]
     fn parse_a_subset() {
@@ -115,6 +133,7 @@ mod test {
         let game = game_input.parse::<Game>().unwrap();
         assert_eq!(game.subsets.len(), 3);
         assert_eq!(game.id, 2);
+        assert_eq!(game.power(), 12)
     }
     #[test]
     fn test_game_against_bag() {
@@ -136,6 +155,8 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
         let result = solve(&mut BufReader::new(buff.as_bytes()));
+        let result2 = solve_part2(&mut BufReader::new(buff.as_bytes()));
         assert_eq!(result, 8);
+        assert_eq!(result2, 2286);
     }
 }
