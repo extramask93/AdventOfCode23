@@ -27,10 +27,9 @@ fn movements() -> Vec<(i32, i32)> {
 fn main() {
     let mut fs = std::fs::File::open("data.txt").unwrap();
     let reader = std::io::BufReader::new(fs);
-
-    //prepare data
     let mut stars: HashMap<(usize, usize), Vec<u32>> = HashMap::new();
     let mut nearby_stars: HashSet<(usize, usize)> = HashSet::new();
+    //prepare data
     let mut matrix = Vec::<Vec<u8>>::new();
     for mut line in reader.lines().filter_map(|elem| elem.ok()) {
         line = line.trim().to_string();
@@ -105,11 +104,6 @@ fn main() {
         total += number;
     }
     println!("{}", total);
-    stars.iter().for_each(|(key,val)| {
-        print!("({},{}) = ",key.0,key.1);
-        val.iter().for_each(|v|{print!("{},",v)});
-        println!("");
-    });
     println!("{}", stars.iter().filter(|(key,val)| {
         val.len() == 2
     }).fold(0, |acc, (key,val)| {
