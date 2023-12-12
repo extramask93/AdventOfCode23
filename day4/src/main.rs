@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader},
-    str::FromStr, collections::HashSet,
+    str::FromStr, collections::{HashSet, VecDeque},
 };
 
 use nom::{
@@ -11,11 +11,12 @@ use nom::{
     sequence::preceded,
     IResult,
 };
-
+#[derive(Clone,Debug)]
 struct Card {
     id: u32,
     winningnumbers: Vec<u32>,
     scratched: Vec<u32>,
+    won_numbers: Vec<u32>
 }
 fn card_id(input: &str) -> IResult<&str, u32> {
     let (input, _) = tag("Card")(input)?;
@@ -37,21 +38,22 @@ impl FromStr for Card {
             preceded(tag(":"), preceded(complete::multispace0, numbers))(input).unwrap();
         let (_, scratched) =
             preceded(preceded(complete::multispace0, tag("|")), numbers)(input).unwrap();
-
+        let mut winningset: HashSet<u32> = HashSet::new();
+        winningset.extend(winningnumbers.iter());
+        let mut scratchedset: HashSet<u32> = HashSet::new();
+        scratchedset.extend(scratched.iter());
+        let won_numbers: Vec<u32> = winningset.intersection(&scratchedset).copied().collect();
         Ok(Card {
             id,
             winningnumbers,
             scratched,
+            won_numbers
         })
     }
 }
 fn calc_part1(cards: &Vec<Card>) -> u32 {
     cards.iter().fold(0, |acc, card| {
-        let mut winningset: HashSet<u32> = HashSet::new();
-        winningset.extend(card.winningnumbers.iter());
-        let mut scratchedset: HashSet<u32> = HashSet::new();
-        scratchedset.extend(card.scratched.iter());
-        let power = winningset.intersection(&scratchedset).fold(0, |init, _| {
+        let power = card.won_numbers.iter().fold(0, |init, _| {
             if init == 0 {
                 return 1;
             } else {
@@ -60,6 +62,29 @@ fn calc_part1(cards: &Vec<Card>) -> u32 {
         });
         acc + power
     })
+}
+fn calc_part2(cards: &Vec<Card>) -> u32 {
+    //hold cards as references to avoid unnecessary copying
+    let mut stack: Vec<&Card> = Vec::<&Card>::new();
+    cards.iter().for_each(|card|
+        {
+            (1..=card.won_numbers.len()).for_each(|idx| {
+               stack.push(&cards[(card.id as usize + idx)-1]);
+            });
+        });
+    let mut total = cards.len() as u32;
+    loop {
+        match stack.pop() {
+            Some(card) => {
+            total+=1;
+            (1..=card.won_numbers.len()).for_each(|idx| {
+               stack.push(&cards[(card.id as usize + idx)-1]);
+            });
+            },
+            None => break,
+        }
+    }
+    total
 }
 fn main() {
     let f = File::open("data.txt").unwrap();
@@ -70,6 +95,7 @@ fn main() {
         .map(|line| line.parse::<Card>().expect("Card shoul be parseable"))
         .collect();
     println!("{}",calc_part1(&cards));
+    println!("{}",calc_part2(&cards));
 }
 
 #[cfg(test)]
@@ -77,7 +103,7 @@ mod test {
 
     use std::collections::HashSet;
 
-    use crate::{Card, calc_part1};
+    use crate::{Card, calc_part1, calc_part2};
 
     #[test]
     fn parse_single_card() {
@@ -109,4 +135,21 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
             .collect();
         assert_eq!(13, calc_part1(&cards));
     }
+    #[test]
+    fn calc_second() {
+        let input = r"Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
+        let cards: Vec<Card> = input
+            .lines()
+            .map(|line| line.parse::<Card>().expect("Card shoul be parseable"))
+            .collect();
+        let result = calc_part2(&cards);
+        assert_eq!(result, 30);
+
+    }
+
 }

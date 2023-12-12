@@ -10,17 +10,15 @@ impl FromStr for Calibration {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let first = s
             .chars()
-            .filter(|c| c.is_digit(10))
-            .next()
+            .find_map(|c| c.to_digit(10))
             .expect(&format!("No digit found in {}", s));
         let second = s
             .chars()
             .rev()
-            .filter(|c| c.is_digit(10))
-            .next()
+            .find_map(|c| c.to_digit(10))
             .expect(&format!("No digit found in {}", s));
-        let value = first.to_string().parse::<u32>().unwrap() * 10
-            + second.to_string().parse::<u32>().unwrap();
+        let value = first * 10
+            + second;
         Ok(Calibration { value })
     }
 }
