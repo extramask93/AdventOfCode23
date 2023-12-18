@@ -1,5 +1,5 @@
 [package]
-name = "day5"
+name = "day6"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,13 +7,3 @@ edition = "2021"
 
 [dependencies]
 nom = "7.1.3"
-
-[[bin]]
-name = "part1"
-path = "src/part1/bin/main.rs"
-test = true
-[[bin]]
-name = "part2"
-path = "src/part2/bin/main.rs"
-test = true
-
